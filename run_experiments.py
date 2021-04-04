@@ -20,7 +20,10 @@ def print_mapf_instance(my_map, starts, goals):
 def print_locations(my_map, locations):
     starts_map = [[-1 for _ in range(len(my_map[0]))] for _ in range(len(my_map))]
     for i in range(len(locations)):
-        starts_map[locations[i][0]][locations[i][1]] = i
+        l_temp = locations[i]
+        k = len(l_temp)
+        for j in range(len(l_temp)):
+            starts_map[l_temp[j][0]][l_temp[j][1]] = i
     to_print = ''
     for x in range(len(my_map)):
         for y in range(len(my_map[0])):
@@ -60,11 +63,26 @@ def import_mapf_instance(filename):
     # #agents lines with the start/goal positions
     starts = []
     goals = []
+    old_ax = 0   #support multicell agents
+    s_temp = []
+    g_temp = []
     for a in range(num_agents):
         line = f.readline()
-        sx, sy, gx, gy = [int(x) for x in line.split(' ')]
-        starts.append((sx, sy))
-        goals.append((gx, gy))
+        ax, sx, sy, gx, gy = [int(x) for x in line.split(' ')]
+        if ax == old_ax:
+            s_temp.append((sx, sy))
+            g_temp.append((gx, gy))
+        else:
+            starts.append(s_temp)  # New agent definition
+            goals.append(g_temp)
+            old_ax = ax
+            s_temp = []
+            g_temp = []
+            s_temp.append((sx, sy))
+            g_temp.append((gx, gy))
+
+    starts.append(s_temp)  # store the last agent values
+    goals.append(g_temp)
     f.close()
     return my_map, starts, goals
 

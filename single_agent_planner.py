@@ -132,12 +132,64 @@ def compare_nodes(n1, n2):
     return n1['g_val'] + n1['h_val'] < n2['g_val'] + n2['h_val']
 
 
-def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
+def orientation(locs):
+    if len(locs) == 1:  #only one location so not a multicell agent
+        return 0
+    x = locs[1][0] - locs[0][0]  # difference in x
+    y = locs[1][1] - locs[0][1]  # difference in y
+    """
+    There are 4 possible orientations for a multi-cell agent 
+        Tail - Head Orientation 1 - x < 0 and y == 0
+        
+        Head
+        Tail        Orientation 2 - x == 0 and y > 0
+        
+        Head - Tail Orientation 3 - x > 0 and y == 0
+        
+        Tail
+        Head        Orientation 4 - x == 0 and y < 0
+    """
+    if x < 0 and y == 0:
+        return 1
+    if x == 0 and y > 0:
+        return 2
+    if x > 0 and y == 0:
+        return 3
+    if x == 0 and y < 0:
+        return 4
+
+def test_map(my_map, x, y, orient):
+    if my_map[x][y]:
+        return True
+    if orient != 0:   # Now test if the tail is in a valid position
+        xt = x
+        yt = y
+        if orient == 1:
+            xt = x - 1
+        if orient == 2:
+            yt = y + 1
+        if orient == 3:
+            xt = x + 1
+        if orient == 4:
+            yt = y - 1
+        if my_map[xt][yt]:
+            return True
+    return False
+
+
+def orient_cost(o_c, o_g):  # calculate the cost to get to the correct orientation
+    if o_g == 0:
+        return 0
+    return o_c - o_g   # !!! calculate correct cost
+
+
+def a_star(my_map, start_locs, goal_locs, h_values, agent, constraints):
     """ my_map      - binary obstacle map
-        start_loc   - start position
-        goal_loc    - goal position
+        start_loc   - start positions
+        goal_loc    - goal positions
         agent       - the agent that is being re-planned
         constraints - constraints defining where robot should or cannot go at each timestep
+        multi       - Is a this a multi-cell agent
     """
 
     ##############################
@@ -149,47 +201,52 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
 
     open_list = []
     closed_list = dict()
-    earliest_goal_timestep = 0
+    timestep = 0
+    start_loc = start_locs[0]
+    goal_loc = goal_locs[0]
+    if len(start_locs) > 1:  # If there is more than 1 start location then this is a multi-cell agent
+        multi = True
+    else:
+        multi = False
     h_value = h_values[start_loc]
-    root = {'loc': start_loc, 'g_val': 0, 'h_val': h_value, 'time': 0, 'parent': None}
+    goal_orientation = orientation(goal_locs)
+    root = {'loc': start_loc,'orientation': orientation(start_locs), 'g_val': 0, 'h_val': h_value, 'time': 0, 'parent': None}
     push_node(open_list, root)
     closed_list[(root['loc'], root['time'])] = root
     max_time = 5 * (len(my_map) + len(my_map[0])) # 5 time the length and width of the map should be more than enough time
-    while len(open_list) > 0 and earliest_goal_timestep < max_time:
+    while len(open_list) > 0 and timestep < max_time:
         curr = pop_node(open_list)
-        earliest_goal_timestep = earliest_goal_timestep + 1
+        timestep = timestep + 1
         #############################
-        # Task 1.4: Adjust the goal test condition to handle goal constraints
-        if curr['loc'] == goal_loc:
-            #####################
-            # a goal constraint is indicated by a constraint with the same start and destination
-            # if there is a goal constraint loop until finishing is allowed adding new nodes to the path
-            timestamp = curr['time']
-            while is_constrained(curr['loc'], curr['loc'], timestamp, constraint_table):
-                temp = curr['parent']
-                loop = {'loc': temp['loc'],
-                        'g_val': temp['g_val'] + 1,
-                        'h_val': temp['h_val'],
-                        'time': timestamp,
-                        'parent': temp}
-                curr['parent'] = loop
-                timestamp = timestamp + 1
-                curr['time'] = timestamp
-
+        # If it is a multi-cell agent check for goal location and
+        if curr['loc'] == goal_loc and curr['orientation'] == goal_orientation:
             return get_path(curr)
         ############################
-        for dir in range(5):
-            child_loc = move(curr['loc'], dir)
-            if my_map[child_loc[0]][child_loc[1]]:
+        child_orient = curr['orientation']
+        for dir in range(7):
+            if dir <= 5:
+                child_loc = move(curr['loc'], dir)
+            if dir == 6:
+                child_orient = curr['orientation'] - 1
+                if child_orient < 1:
+                    child_orient = 4
+            if dir == 7:
+                child_orient = curr['orientation'] + 1
+                if child_orient > 4:
+                    child_orient = 1
+
+            if test_map([child_loc[0]][child_loc[1]],child_orient):
                 continue
             # Check for an edge or a vertex constraint
             curr_loc = curr['loc']
-            if is_constrained(curr['loc'], child_loc, earliest_goal_timestep, constraint_table):
+            if is_constrained(curr['loc'], child_loc, timestep, constraint_table):
                 continue
+
             child = {'loc': child_loc,
+                     'orientation': child_orient,
                      'g_val': curr['g_val'] + 1,
-                     'h_val': h_values[child_loc],
-                     'time': earliest_goal_timestep,
+                     'h_val': h_values[child_loc] + orient_cost(child_orient, goal_orientation),
+                     'time': timestep,
                      'parent': curr}
 #                if child['loc'] == curr['loc']:
 #                    child['g_val'] = child['g_val'] + 1 # Add an incentive to move if possible
