@@ -128,9 +128,9 @@ if __name__ == '__main__':
         result_file.write("{},{}\n".format(file, cost))
 
 
-        if not args.batch:
-            print("***Test paths on a simulation***")
-            animation = Animation(my_map, starts, goals, paths)
+        # if not args.batch:
+            # print("***Test paths on a simulation***")
+            # animation = Animation(my_map, starts, goals, paths)
             # animation.save("output.mp4", 1.0)
-            animation.show()
+            # animation.show()
     result_file.close()
