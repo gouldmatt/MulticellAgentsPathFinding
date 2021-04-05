@@ -78,9 +78,9 @@ def get_path(goal_node):
     path = []
     curr = goal_node
     while curr is not None:
-#        d3 = curr['loc'],curr['time']
-#        path.append(d3)
-        path.append(curr['loc'])
+        d3 = curr['loc'],curr['orientation']
+        path.append(d3)
+#        path.append(curr['loc'])
         curr = curr['parent']
     path.reverse()
     return path
@@ -172,7 +172,10 @@ def test_map(my_map, x, y, orient):
             xt = x + 1
         if orient == 4:
             yt = y - 1
-        if my_map[xt][yt]:
+        if xt < 0 or xt >= len(my_map) \
+                or yt < 0 or yt >= len(my_map[0]):  # Make sure the tail co-ordinates are on the map
+            return True
+        if my_map[xt][yt]:  # Check for collisions with the test space
             return True
     return False
 
@@ -180,7 +183,10 @@ def test_map(my_map, x, y, orient):
 def orient_cost(o_c, o_g):  # calculate the cost to get to the correct orientation
     if o_g == 0:
         return 0
-    return o_c - o_g   # !!! calculate correct cost
+    cost = abs(o_c - o_g)   # from 3 to 1 is 2 and vice versa 4 to 3 is 1 ...
+    if cost == 3:  # but 4 to 1 is 1 90 degree rotation
+        cost = 1
+    return cost   # !!! calculate correct cost
 
 
 def a_star(my_map, start_locs, goal_locs, h_values, agent, constraints):
@@ -224,18 +230,18 @@ def a_star(my_map, start_locs, goal_locs, h_values, agent, constraints):
         ############################
         child_orient = curr['orientation']
         for dir in range(7):
-            if dir <= 5:
+            if dir < 5:
                 child_loc = move(curr['loc'], dir)
-            if dir == 6:
+            if dir == 5:
                 child_orient = curr['orientation'] - 1
                 if child_orient < 1:
                     child_orient = 4
-            if dir == 7:
+            if dir == 6:
                 child_orient = curr['orientation'] + 1
                 if child_orient > 4:
                     child_orient = 1
 
-            if test_map([child_loc[0]][child_loc[1]],child_orient):
+            if test_map(my_map, child_loc[0], child_loc[1], child_orient):
                 continue
             # Check for an edge or a vertex constraint
             curr_loc = curr['loc']
@@ -248,8 +254,7 @@ def a_star(my_map, start_locs, goal_locs, h_values, agent, constraints):
                      'h_val': h_values[child_loc] + orient_cost(child_orient, goal_orientation),
                      'time': timestep,
                      'parent': curr}
-#                if child['loc'] == curr['loc']:
-#                    child['g_val'] = child['g_val'] + 1 # Add an incentive to move if possible
+
             if (child['loc'], child['time']) in closed_list:
                 existing_node = closed_list[(child['loc'], child['time'])]
                 if compare_nodes(child, existing_node):
