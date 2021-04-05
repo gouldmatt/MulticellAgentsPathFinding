@@ -227,7 +227,9 @@ def test_map(my_map, x, y, orient):
             # xt = x + 1
             yt = y + 1
         if orient == 4:
-            yt = y - 1
+            # yt = y - 1
+            xt = x - 1
+           
         if xt < 0 or xt >= len(my_map) \
                 or yt < 0 or yt >= len(my_map[0]):  # Make sure the tail co-ordinates are on the map
             return True
