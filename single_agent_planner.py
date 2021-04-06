@@ -262,6 +262,7 @@ def test_map(my_map, row, col, orient, dir):
         # Make sure the tail co-ordinates are on the map and the intermediate tail co-ordinates 
         if row_t < 0 or row_t >= len(my_map)\
                 or col_t < 0 or col_t >= len(my_map[0]) or col_t_inter < 0 or col_t_inter >= len(my_map[0]):
+
             return True
         if my_map[row_t][col_t] or my_map[row_t_inter][col_t_inter]:  # Check for collisions with the test space
             return True
