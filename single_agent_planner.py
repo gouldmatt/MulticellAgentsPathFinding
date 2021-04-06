@@ -99,27 +99,27 @@ def get_path(goal_node):
         else: 
   
             parent_orient = curr['parent']['orientation']
+            parent_loc = curr['parent']['orientation']
             # check if rotation in this time step 
             if orient != parent_orient:
-    
                 # if so append the intermediate tail location 
-                if parent_orient == 1:
-                    if orient == 2:
+                if orient == 1:
+                    if parent_orient == 2:
                         intermediate_loc = (tail_loc[0] + 1, tail_loc[1])
                     else: # 4
                         intermediate_loc = (tail_loc[0], tail_loc[1] - 1)
-                elif parent_orient == 2:
-                    if orient == 1:
+                elif orient == 2:
+                    if parent_orient == 1:
                         intermediate_loc = (tail_loc[0], tail_loc[1] - 1)
                     else: # 3 
                         intermediate_loc = (tail_loc[0], tail_loc[1] + 1)
-                elif parent_orient == 3:
-                    if orient == 2:
+                elif orient == 3:
+                    if parent_orient == 2:
                         intermediate_loc = (tail_loc[0] + 1, tail_loc[1])
                     else: # 4 
                         intermediate_loc = (tail_loc[0] - 1, tail_loc[1])
-                elif parent_orient == 4:
-                    if orient == 1:
+                elif orient == 4:
+                    if parent_orient == 1:
                         intermediate_loc = (tail_loc[0], tail_loc[1] - 1)
                     else: # 3 
                         intermediate_loc = (tail_loc[0], tail_loc[1] + 1)
@@ -211,30 +211,62 @@ def orientation(locs):
     if x == 0 and y < 0:
         return 4
 
-def test_map(my_map, x, y, orient):
-    if my_map[x][y]:
+def test_map(my_map, row, col, orient, dir):
+    if my_map[row][col]:
         return True
     if orient != 0:   # Now test if the tail is in a valid position
-        xt = x
-        yt = y
+        row_t = row
+        col_t = col
+        row_t_inter = row
+        col_t_inter = col 
         if orient == 1:
-            # xt = x - 1
-            yt = y - 1
+            col_t = col - 1
+
+            if dir == 5:
+                row_t_inter = row + 1
+                col_t_inter = col_t
+            elif dir == 6: 
+                row_t_inter = row - 1
+                col_t_inter = col_t
+
         if orient == 2:
-            # yt = y + 1
-            xt = x + 1
+            row_t = row + 1
+
+            if dir == 5:
+                row_t_inter = row_t
+                col_t_inter = col + 1
+            elif dir == 6: 
+                row_t_inter = row_t
+                col_t_inter = col - 1 
+
         if orient == 3:
-            # xt = x + 1
-            yt = y + 1
+            col_t = col + 1
+
+            if dir == 5:
+                row_t_inter = row - 1
+                col_t_inter = col_t
+            elif dir == 6: 
+                row_t_inter = row + 1
+                col_t_inter = col_t
+
         if orient == 4:
-            # yt = y - 1
-            xt = x - 1
-           
-        if xt < 0 or xt >= len(my_map) \
-                or yt < 0 or yt >= len(my_map[0]):  # Make sure the tail co-ordinates are on the map
+            row_t = row - 1
+
+            if dir == 5:
+                row_t_inter = row_t
+                col_t_inter = col - 1
+            elif dir == 6: 
+                row_t_inter = row_t
+                col_t_inter = col + 1 
+
+        # Make sure the tail co-ordinates are on the map and the intermediate tail co-ordinates 
+        if row_t < 0 or row_t >= len(my_map)\
+                or col_t < 0 or col_t >= len(my_map[0]) or col_t_inter < 0 or col_t_inter >= len(my_map[0]):
+
             return True
-        if my_map[xt][yt]:  # Check for collisions with the test space
+        if my_map[row_t][col_t] or my_map[row_t_inter][col_t_inter]:  # Check for collisions with the test space
             return True
+        
     return False
 
 
@@ -293,15 +325,17 @@ def a_star(my_map, start_locs, goal_locs, h_values, agent, constraints):
             if dir < 5:
                 child_loc = move(curr['loc'], dir)
             if dir == 5:
+                # clockwise rotation 
                 child_orient = curr['orientation'] - 1
                 if child_orient < 1:
                     child_orient = 4
             if dir == 6:
+                # counter-clockwise rotation 
                 child_orient = curr['orientation'] + 1
                 if child_orient > 4:
                     child_orient = 1
                     
-            if test_map(my_map, child_loc[0], child_loc[1], child_orient):
+            if test_map(my_map, child_loc[0], child_loc[1], child_orient, dir):
                 continue
 
             if is_constrained(curr['loc'], child_loc, timestep, constraint_table):
