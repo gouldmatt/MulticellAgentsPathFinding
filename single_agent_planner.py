@@ -78,9 +78,56 @@ def get_path(goal_node):
     path = []
     curr = goal_node
     while curr is not None:
-        d3 = curr['loc'],curr['orientation']
-        path.append(d3)
-#        path.append(curr['loc'])
+#        d3 = curr['loc'],curr['time']
+#        path.append(d3)
+
+        # find the tail location 
+        orient = curr['orientation']
+        head_loc = curr['loc']
+        if orient == 1:
+            tail_loc = (head_loc[0], head_loc[1] - 1)
+        if orient == 2:
+            tail_loc = (head_loc[0] + 1, head_loc[1])
+        if orient == 3:
+            tail_loc = (head_loc[0], head_loc[1] + 1)
+        if orient == 4:
+            tail_loc = (head_loc[0] - 1, head_loc[1])
+
+        if curr['parent'] is None:
+
+            path.append([head_loc,tail_loc])
+        else: 
+  
+            parent_orient = curr['parent']['orientation']
+            # check if rotation in this time step 
+            if orient != parent_orient:
+    
+                # if so append the intermediate tail location 
+                if parent_orient == 1:
+                    if orient == 2:
+                        intermediate_loc = (tail_loc[0] + 1, tail_loc[1])
+                    else: # 4
+                        intermediate_loc = (tail_loc[0], tail_loc[1] - 1)
+                elif parent_orient == 2:
+                    if orient == 1:
+                        intermediate_loc = (tail_loc[0], tail_loc[1] - 1)
+                    else: # 3 
+                        intermediate_loc = (tail_loc[0], tail_loc[1] + 1)
+                elif parent_orient == 3:
+                    if orient == 2:
+                        intermediate_loc = (tail_loc[0] + 1, tail_loc[1])
+                    else: # 4 
+                        intermediate_loc = (tail_loc[0] - 1, tail_loc[1])
+                elif parent_orient == 4:
+                    if orient == 1:
+                        intermediate_loc = (tail_loc[0], tail_loc[1] - 1)
+                    else: # 3 
+                        intermediate_loc = (tail_loc[0], tail_loc[1] + 1)
+            
+                path.append([head_loc,tail_loc,intermediate_loc])
+            else: 
+                path.append([head_loc,tail_loc])
+           
         curr = curr['parent']
     path.reverse()
     return path
@@ -135,8 +182,14 @@ def compare_nodes(n1, n2):
 def orientation(locs):
     if len(locs) == 1:  #only one location so not a multicell agent
         return 0
-    x = locs[1][0] - locs[0][0]  # difference in x
-    y = locs[1][1] - locs[0][1]  # difference in y
+
+    # x & y were reversed here before 
+    # x = locs[1][0] - locs[0][0]  # difference in x
+    # y = locs[1][1] - locs[0][1]  # difference in y
+
+    y = locs[1][0] - locs[0][0]  # difference in y
+    x = locs[1][1] - locs[0][1]  # difference in x
+
     """
     There are 4 possible orientations for a multi-cell agent 
         Tail - Head Orientation 1 - x < 0 and y == 0
@@ -165,13 +218,18 @@ def test_map(my_map, x, y, orient):
         xt = x
         yt = y
         if orient == 1:
-            xt = x - 1
-        if orient == 2:
-            yt = y + 1
-        if orient == 3:
-            xt = x + 1
-        if orient == 4:
+            # xt = x - 1
             yt = y - 1
+        if orient == 2:
+            # yt = y + 1
+            xt = x + 1
+        if orient == 3:
+            # xt = x + 1
+            yt = y + 1
+        if orient == 4:
+            # yt = y - 1
+            xt = x - 1
+           
         if xt < 0 or xt >= len(my_map) \
                 or yt < 0 or yt >= len(my_map[0]):  # Make sure the tail co-ordinates are on the map
             return True
@@ -214,8 +272,10 @@ def a_star(my_map, start_locs, goal_locs, h_values, agent, constraints):
         multi = True
     else:
         multi = False
+    
     h_value = h_values[start_loc]
     goal_orientation = orientation(goal_locs)
+
     root = {'loc': start_loc,'orientation': orientation(start_locs), 'g_val': 0, 'h_val': h_value, 'time': 0, 'parent': None}
     push_node(open_list, root)
     closed_list[(root['loc'], root['time'])] = root
@@ -224,7 +284,7 @@ def a_star(my_map, start_locs, goal_locs, h_values, agent, constraints):
         curr = pop_node(open_list)
         timestep = timestep + 1
         #############################
-        # If it is a multi-cell agent check for goal location and
+        # If it is a multi-cell agent check for goal location and goal orientation 
         if curr['loc'] == goal_loc and curr['orientation'] == goal_orientation:
             return get_path(curr)
         ############################
@@ -240,11 +300,10 @@ def a_star(my_map, start_locs, goal_locs, h_values, agent, constraints):
                 child_orient = curr['orientation'] + 1
                 if child_orient > 4:
                     child_orient = 1
-
+                    
             if test_map(my_map, child_loc[0], child_loc[1], child_orient):
                 continue
-            # Check for an edge or a vertex constraint
-            curr_loc = curr['loc']
+
             if is_constrained(curr['loc'], child_loc, timestep, constraint_table):
                 continue
 
