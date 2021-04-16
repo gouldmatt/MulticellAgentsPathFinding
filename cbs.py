@@ -2,6 +2,7 @@ import time as timer
 import heapq
 import random
 from single_agent_planner import compute_heuristics, a_star, get_location, get_sum_of_cost
+import copy 
 
 
 def detect_collision(path1, path2):
@@ -11,25 +12,55 @@ def detect_collision(path1, path2):
     #           A vertex collision occurs if both robots occupy the same location at the same timestep
     #           An edge collision occurs if the robots swap their location at the same timestep.
     #           You should use "get_location(path, t)" to get the location of a robot at time t.
-    hits = []
-    length = max(len(path1), len(path2))
-    #vertex collisions
-    for i in range(length):
-        if get_location(path1, i) == get_location(path2, i):
-            # if i > len(path1) or i > len(path2):
-            # if i >= len(path1):
-            hits = [i - 1, get_location(path1, i)]
-            # else:
-            #     hits = [i - 1, get_location(path1, i)]
-#            hits = [i, get_location(path1, i)]
-            return hits
 
-    for i in range(length - 1):
-        if get_location(path1, i) == get_location(path2, i+1) and get_location(path1, i+1) == get_location(path2, i):
-            hits = [i + 1,(get_location(path1, i)),(get_location(path1, i+1))]
-            return hits
+    max_time = max(len(path1),len(path2))
+
+    for t in range(max_time): 
+
+        # check if we have single agent if so 
+        # enclose in list for multi cell loop below 
+        if(type(path1[0][0]) == int):
+            path1_cells = [get_location(path1,t)]
+        else: 
+            path1_cells = get_location(path1,t)
+
+        if(type(path2[0][0]) == int):
+            path2_cells = [get_location(path2,t)]
+        else: 
+            path2_cells = get_location(path2,t)
+
+        # go through every cell in each agent at this location & timestep
+        # and look for a collision 
+        for multi_cell1 in path1_cells:
+            for multi_cell2 in path2_cells:
+      
+                # check for vertex collision ########################
+                if(multi_cell1 == multi_cell2):
+                    return({'loc': [multi_cell1], 'timestep': t})
+
+
+                # check for edge collision  ########################
+
+                # for edge collision we also need to go through every last cell location 
+                if(type(path1[0][0]) == int):
+                    path1_last_cells = [get_location(path1,t-1)]
+                else: 
+                    path1_last_cells = get_location(path1,t-1)
+
+                if(type(path2[0][0]) == int):
+                    path2_last_cells = [get_location(path2,t-1)]
+                else: 
+                    path2_last_cells = get_location(path2,t-1)
+
+       
+                for last_multi_cell1 in path1_last_cells:
+                    for last_multi_cell2 in path2_last_cells:
+
+                        if(last_multi_cell1 == multi_cell2 and last_multi_cell2 == multi_cell1):
+                            return({'loc':[multi_cell1, last_multi_cell1], 'timestep': t})
+                        
+
     return None
-
 
 def detect_collisions(paths):
     ##############################
@@ -37,22 +68,21 @@ def detect_collisions(paths):
     #           A collision can be represented as dictionary that contains the id of the two robots, the vertex or edge
     #           causing the collision, and the timestep at which the collision occurred.
     #           You should use your detect_collision function to find a collision between two robots.
-    cycles = len(paths)
-    items = []
-    if cycles > 1:
-        for j in range(cycles - 1):
-            for k in range(j + 1,cycles):
-                item = []
-                item = detect_collision(paths[j], paths[k])
-                if item:
-                    if len(item) == 2:  # vertex collisions
-                       items.append({'a1': j,'a2': k, 'loc': [item[1]],'timestep': item[0]})
-                    else:
-                        items.append({'a1': j, 'a2': k, 'loc': [item[1],item[2]], 'timestep': item[0]})
-#            hits = [{'a1': 0, 'a2' : 1, 'loc': [get_location(path1, i)], 'timestep': i}]
-#    items.append({'a1': 0, 'a2': 1, 'loc': [(1,2),(1,3)], 'timestep': 3}) #test edge constraint
-    return items
 
+    agent_collisions = []
+    visited = []
+    for agent1 in range(len(paths)):
+        for agent2 in range(len(paths)):
+            if agent1 != agent2:
+                first_collision = detect_collision(paths[agent1],paths[agent2])
+
+                if first_collision is not None:
+                    if (agent1,agent2) not in visited and (agent2,agent1) not in visited:
+                        agent_collisions.append({'a1': agent1, 'a2': agent2, 'loc': first_collision['loc'], 'timestep': first_collision['timestep']})
+                        visited.append((agent1,agent2))
+
+
+    return(agent_collisions)
 
 def standard_splitting(collision):
     ##############################
@@ -63,15 +93,15 @@ def standard_splitting(collision):
     #           Edge collision: the first constraint prevents the first agent to traverse the specified edge at the
     #                          specified timestep, and the second constraint prevents the second agent to traverse the
     #                          specified edge at the specified timestep
-    constraints = []
-    constraint1 = {'agent': collision['a1'],'loc': collision['loc'], 'timestep': collision['timestep']}
-    temp = collision['loc']
-    if len(temp) > 1: # if it is an edge collision reverse the locations
-        temp = [collision['loc'][1],collision['loc'][0]]
-    constraint2 = {'agent': collision['a2'],'loc': temp, 'timestep': collision['timestep']}
-    constraints.append(constraint1)
-    constraints.append(constraint2)
-    return constraints
+
+    if(len(collision['loc']) == 2):
+        # edge 
+        return([{'agent': collision['a1'], 'loc': [collision['loc'][1],collision['loc'][0]], 'timestep': collision['timestep'], 'positive': False},
+                {'agent': collision['a2'], 'loc': [collision['loc'][0],collision['loc'][1]], 'timestep': collision['timestep'], 'positive': False}])
+    else:
+        # vertex 
+        return([{'agent': collision['a1'], 'loc': collision['loc'], 'timestep': collision['timestep'], 'positive': False},
+                {'agent': collision['a2'], 'loc': collision['loc'], 'timestep': collision['timestep'], 'positive': False}])
 
 
 def disjoint_splitting(collision):
@@ -127,13 +157,11 @@ class CBSSolver(object):
         # compute heuristics for the low-level search
         self.heuristics = []
         for goal in self.goals:
-            self.heuristics.append(compute_heuristics(my_map, goal))
+            self.heuristics.append(compute_heuristics(my_map, goal[0]))
 
     def push_node(self, node):
         heapq.heappush(self.open_list, (node['cost'], len(node['collisions']), self.num_of_generated, node))
         print("Generate node {}".format(self.num_of_generated))
-#        print(node['cost'])
-#        print(len(node['collisions']))
         self.num_of_generated += 1
 
     def pop_node(self):
@@ -160,7 +188,8 @@ class CBSSolver(object):
                 'paths': [],
                 'collisions': []}
         loops = 0
-        max_loops = 50  # !!! Maximum 10000 iterations
+        max_loops = 100  # !!! Maximum 10000 iterations
+
         for i in range(self.num_of_agents):  # Find initial path for each agent
             path = a_star(self.my_map, self.starts[i], self.goals[i], self.heuristics[i],
                           i, root['constraints'])
@@ -173,11 +202,11 @@ class CBSSolver(object):
         self.push_node(root)
 
         # Task 3.1: Testing
-        print(root['collisions'])
+        # print(root['collisions'])
 
         # Task 3.2: Testing
-        for collision in root['collisions']:
-            print(standard_splitting(collision))
+        # for collision in root['collisions']:
+        #     print(standard_splitting(collision))
 
         ##############################
         # Task 3.3: High-Level Search
@@ -190,42 +219,34 @@ class CBSSolver(object):
 
         while len(self.open_list) > 0:
             P = self.pop_node()
-            print(P['constraints'])
+
             if loops > max_loops:
                 raise BaseException('No solutions') # maximum loops exceeded
 
-            if len(P['collisions']) == 0: # solution found
-                print(P['paths'])
-                return P['paths']
+            if len(P["collisions"]) == 0: 
+                self.print_results(P)
+                return P["paths"]
 
             constraints = standard_splitting(P['collisions'][0])
+
             for c in constraints:
                 Q = {'cost': 0,
-                        'constraints': P['constraints'].copy(),
-                        'paths': P['paths'].copy(),
-                        'collisions': []}
-                Q['constraints'].append(c.copy())
+                    'constraints': copy.deepcopy(P['constraints']),
+                    'paths': copy.deepcopy(P['paths']),
+                    'collisions': []}
+                Q['constraints'].append(c)
+            
                 agent = c['agent']
-                # if c['agent'] == 1:
-                #    Q['constraints'] = [{'agent': 1, 'loc': [(1, 5)], 'timestep': -4}, {'agent': 1, 'loc': [(1, 4)], 'timestep': 2},
-                #                        {'agent': 1, 'loc': [(1, 3)], 'timestep': 2},
-                #                        {'agent': 1, 'loc': [(1, 4)], 'timestep': 3}, {'agent': 1, 'loc': [(1, 2)], 'timestep': 1},
-                #                        {'agent': 1, 'loc': [(1, 3), (1, 2)], 'timestep': 2}]
-                print(Q['constraints'])
-                print(Q['paths'])
-                path = a_star(self.my_map, self.starts[agent], self.goals[agent], self.heuristics[agent],
-                              agent, Q['constraints'])
-                if path is not None:
+                path = a_star(self.my_map, self.starts[agent], self.goals[agent], self.heuristics[agent],agent, Q['constraints'])
+                if path is not None: 
                     Q['paths'][agent] = path
                     Q['collisions'] = detect_collisions(Q['paths'])
-                    Q['cost'] = P['cost'] + get_sum_of_cost(Q['paths'])
+                    Q['cost'] = get_sum_of_cost(Q['paths'])
                     self.push_node(Q)
             loops = loops + 1
-        raise BaseException('No solutions') #If we got here there was no solution
 
-        self.print_results(root)
-        return root['paths']
-
+        raise BaseException('No solutions')    
+            
 
     def print_results(self, node):
         print("\n Found a solution! \n")
