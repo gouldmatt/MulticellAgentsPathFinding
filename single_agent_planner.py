@@ -54,16 +54,16 @@ def build_constraint_table(constraints, agent):
     #               the given agent for each time step. The table can be used
     #               for a more efficient constraint violation check in the 
     #               is_constrained function.
-    constraint_temp = []
-    for x in constraints:
-        if x['agent'] == agent:
-            if (len(x['loc']) == 1):
-                d3 = (x['timestep'], x['loc'][0])
-            else:
-                d3 = (x['timestep'], x['loc'][0], x['loc'][1])
-            constraint_temp.append(d3)
-    return constraint_temp
+    constraint_table = dict()
 
+    for entry in constraints:
+        if(entry['agent'] == agent):
+            if(entry['timestep'] in constraint_table):
+                constraint_table[entry['timestep']] = constraint_table[entry['timestep']] + [entry['loc']]
+            else: 
+                constraint_table[entry['timestep']] = [entry['loc']] 
+
+    return constraint_table
 
 def get_location(path, time):
     if time < 0:
@@ -78,8 +78,6 @@ def get_path(goal_node):
     path = []
     curr = goal_node
     while curr is not None:
-#        d3 = curr['loc'],curr['time']
-#        path.append(d3)
 
         # find the tail location 
         orient = curr['orientation']
@@ -136,38 +134,70 @@ def get_path(goal_node):
     path.reverse()
     return path
 
+def find_tail_positions(row_start,col_start,orient,dir):
+    row_t = row_start
+    col_t = col_start
+    row_t_inter = row_start
+    col_t_inter = col_start 
+    if orient == 1:
+        col_t = col_start - 1
 
-def is_constrained(curr_loc, next_loc, next_time, constraint_table):
+        if dir == 5:
+            row_t_inter = row_start + 1
+            col_t_inter = col_t
+        elif dir == 6: 
+            row_t_inter = row_start - 1
+            col_t_inter = col_t
+
+    if orient == 2:
+        row_t = row_start + 1
+
+        if dir == 5:
+            row_t_inter = row_t
+            col_t_inter = col_start + 1
+        elif dir == 6: 
+            row_t_inter = row_t
+            col_t_inter = col_start - 1 
+
+    if orient == 3:
+        col_t = col_start + 1
+
+        if dir == 5:
+            row_t_inter = row_start - 1
+            col_t_inter = col_t
+        elif dir == 6: 
+            row_t_inter = row_start + 1
+            col_t_inter = col_t
+
+    if orient == 4:
+        row_t = row_start - 1
+
+        if dir == 5:
+            row_t_inter = row_t
+            col_t_inter = col_start - 1
+        elif dir == 6: 
+            row_t_inter = row_t
+            col_t_inter = col_start + 1 
+
+    return row_t, col_t, row_t_inter, col_t_inter
+
+def is_constrained(curr_loc, next_loc, orient, dir, next_time, constraint_table):
     ##############################
     # Task 1.2/1.3: Check if a move from curr_loc to next_loc at time step next_time violates
     #               any given constraint. For efficiency the constraints are indexed in a constraint_table
     #               by time step, see build_constraint_table.
-    if len(constraint_table) > 0:
-        for constraint in constraint_table:
-            # check for vertex constraints
-            if len(constraint) == 2:
-                if constraint[0] == next_time and constraint[1][0] == next_loc[0] and constraint[1][1] == next_loc[1]:
-                    return True
-                if constraint[0] < 0:
-                    # A negative time constraint denotes a previous agent goal location
-                    if -constraint[0] < next_time and constraint[1][0] == next_loc[0] and constraint[1][1] == next_loc[1]:
-                        return True
-                continue
-            else:
-                if next_loc is not None:  # not a vertex constraint check
-                    # check for edge constraints
-                    if constraint[0] == next_time \
-                            and constraint[1][0] == curr_loc[0] \
-                            and constraint[1][1] == curr_loc[1] \
-                            and constraint[2][0] == next_loc[0] \
-                            and constraint[2][1] == next_loc[1]:
-                        return True
-                    # check for goal constraints
-#                    if ((curr_loc[0] == next_loc[0]) and (curr_loc[1] == next_loc[1])):
-#                        if constraint[0] > next_time:
-#                            return True
-    return False
+    # check postive constraints 
 
+    if(next_time in constraint_table.keys()):
+        for loc_constraint in constraint_table[next_time]:
+            if(len(loc_constraint) == 2):
+                if(curr_loc == loc_constraint[0] and next_loc == loc_constraint[1]):
+                    return True
+            else:
+                if(next_loc == loc_constraint[0]):
+                    return True
+
+    return False
 
 def push_node(open_list, node):
     heapq.heappush(open_list, (node['g_val'] + node['h_val'], node['h_val'], node['loc'], node['time'], node))
@@ -186,10 +216,6 @@ def compare_nodes(n1, n2):
 def orientation(locs):
     if len(locs) == 1:  #only one location so not a multicell agent
         return 0
-
-    # x & y were reversed here before 
-    # x = locs[1][0] - locs[0][0]  # difference in x
-    # y = locs[1][1] - locs[0][1]  # difference in y
 
     y = locs[1][0] - locs[0][0]  # difference in y
     x = locs[1][1] - locs[0][1]  # difference in x
@@ -213,7 +239,7 @@ def orientation(locs):
     if x > 0 and y == 0:
         return 3
     if x == 0 and y < 0:
-        return 4
+        return 4  
 
 def test_map(my_map, row, col, orient, dir):
     if row < 0 or row >= len(my_map):
@@ -223,49 +249,7 @@ def test_map(my_map, row, col, orient, dir):
     if my_map[row][col]:
         return True
     if orient != 0:   # Now test if the tail is in a valid position
-        row_t = row
-        col_t = col
-        row_t_inter = row
-        col_t_inter = col 
-        if orient == 1:
-            col_t = col - 1
-
-            if dir == 5:
-                row_t_inter = row + 1
-                col_t_inter = col_t
-            elif dir == 6: 
-                row_t_inter = row - 1
-                col_t_inter = col_t
-
-        if orient == 2:
-            row_t = row + 1
-
-            if dir == 5:
-                row_t_inter = row_t
-                col_t_inter = col + 1
-            elif dir == 6: 
-                row_t_inter = row_t
-                col_t_inter = col - 1 
-
-        if orient == 3:
-            col_t = col + 1
-
-            if dir == 5:
-                row_t_inter = row - 1
-                col_t_inter = col_t
-            elif dir == 6: 
-                row_t_inter = row + 1
-                col_t_inter = col_t
-
-        if orient == 4:
-            row_t = row - 1
-
-            if dir == 5:
-                row_t_inter = row_t
-                col_t_inter = col - 1
-            elif dir == 6: 
-                row_t_inter = row_t
-                col_t_inter = col + 1 
+        row_t, col_t, row_t_inter, col_t_inter = find_tail_positions(row, col, orient, dir)
 
         # Make sure the tail co-ordinates are on the map and the intermediate tail co-ordinates 
         if row_t < 0 or row_t >= len(my_map)\
@@ -313,26 +297,40 @@ def a_star(my_map, start_locs, goal_locs, h_values, agent, constraints):
         multi = True
     else:
         multi = False
-    
+
+    # determine when the last constraint is on the goal node (or any of the goal node cells in the case of multi-cell)
+    earliest_goal_timestep = 0
+    if len(constraint_table) != 0:
+        for time in [item for item in reversed(constraint_table.keys())]:
+            flat_list = [item for sublist in constraint_table[time] for item in sublist]
+            if(goal_locs[0] in flat_list):
+                earliest_goal_timestep = time
+                break
+            elif(multi): # if multi cell check if any of the agents goal cells are constrained 
+                if(goal_locs[1] in flat_list): 
+                    earliest_goal_timestep = time
+                    break
+            
     h_value = h_values[start_loc]
     goal_orientation = orientation(goal_locs)
 
     root = {'loc': start_loc,'orientation': orientation(start_locs), 'g_val': 0, 'h_val': h_value, 'time': 0, 'parent': None}
     push_node(open_list, root)
     closed_list[(root['loc'], root['time'])] = root
-    max_time = 5 * (len(my_map) + len(my_map[0])) # 5 time the length and width of the map should be more than enough time
-    while len(open_list) > 0: #and timestep < max_time:
+
+    while len(open_list) > 0:
         curr = pop_node(open_list)
-        timestep = timestep + 1
-        #############################
-        # If it is a multi-cell agent check for goal location and goal orientation 
-        if curr['loc'] == goal_loc and curr['orientation'] == goal_orientation:
+        
+        if curr['loc'] == goal_loc and curr['orientation'] == goal_orientation and curr['time'] >= earliest_goal_timestep:
             return get_path(curr)
         ############################
         child_orient = curr['orientation']
         for dir in range(7):
             if dir < 5:
                 child_loc = move(curr['loc'], dir)
+            elif not multi: 
+                continue
+
             if dir == 5:
                 # clockwise rotation 
                 child_orient = curr['orientation'] - 1
@@ -346,15 +344,30 @@ def a_star(my_map, start_locs, goal_locs, h_values, agent, constraints):
                     
             if test_map(my_map, child_loc[0], child_loc[1], child_orient, dir):
                 continue
-
-            if is_constrained(curr['loc'], child_loc, timestep, constraint_table):
+            
+            # check if the head location is constrained 
+            if is_constrained(curr['loc'], child_loc, child_orient, dir, curr['time'] + 1, constraint_table):
                 continue
+
+            # if this is a multi cell agent check if the tail is constrained 
+            if multi:
+                # check the next tail location 
+                row_t, col_t, _, _ = find_tail_positions(curr['loc'][0], curr['loc'][1], curr['orientation'], dir)
+                next_row_t, next_col_t, next_row_t_inter, next_col_t_inter = find_tail_positions(child_loc[0], child_loc[1], child_orient, dir)
+
+                if is_constrained((row_t,col_t), (next_row_t, next_col_t), child_orient, dir, curr['time'] + 1, constraint_table):
+                    continue
+
+                # if the agent is rotating check if the intermediate location is constrained
+                if dir == 5 or dir == 6: 
+                    if is_constrained((row_t,col_t), (next_row_t_inter, next_col_t_inter), child_orient, dir, curr['time'] + 1, constraint_table):
+                        continue
 
             child = {'loc': child_loc,
                      'orientation': child_orient,
                      'g_val': curr['g_val'] + 1,
                      'h_val': h_values[child_loc] + orient_cost(child_orient, goal_orientation),
-                     'time': timestep,
+                     'time': curr['time'] + 1,
                      'parent': curr}
 
             if (child['loc'], child['time']) in closed_list:
