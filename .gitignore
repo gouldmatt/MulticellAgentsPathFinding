@@ -15,6 +15,9 @@ Instances/*.gif
 *.xlsx
 *.csv
 
+# Bat files
+*.bat
+
 # Distribution / packaging
 .Python
 build/
