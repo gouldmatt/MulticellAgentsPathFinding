@@ -161,16 +161,16 @@ class CBSSolver(object):
 
     def push_node(self, node):
         heapq.heappush(self.open_list, (node['cost'], len(node['collisions']), self.num_of_generated, node))
-        print("Generate node {}".format(self.num_of_generated))
+#        print("Generate node {}".format(self.num_of_generated))
         self.num_of_generated += 1
 
     def pop_node(self):
         _, _, id, node = heapq.heappop(self.open_list)
-        print("Expand node {}".format(id))
+#        print("Expand node {}".format(id))
         self.num_of_expanded += 1
         return node
 
-    def find_solution(self, disjoint=True):
+    def find_solution(self, fOut, disjoint=True):
         """ Finds paths for all agents from their start locations to their goal locations
 
         disjoint    - use disjoint splitting or not
@@ -188,7 +188,7 @@ class CBSSolver(object):
                 'paths': [],
                 'collisions': []}
         loops = 0
-        max_loops = 100  # !!! Maximum 10000 iterations
+        max_loops = 500  # !!! Maximum 10000 iterations
 
         for i in range(self.num_of_agents):  # Find initial path for each agent
             path = a_star(self.my_map, self.starts[i], self.goals[i], self.heuristics[i],
@@ -224,7 +224,7 @@ class CBSSolver(object):
                 raise BaseException('No solutions') # maximum loops exceeded
 
             if len(P["collisions"]) == 0: 
-                self.print_results(P)
+                self.print_results(fOut, P)
                 return P["paths"]
 
             constraints = standard_splitting(P['collisions'][0])
@@ -248,10 +248,14 @@ class CBSSolver(object):
         raise BaseException('No solutions')    
             
 
-    def print_results(self, node):
+    def print_results(self,fOut, node):
         print("\n Found a solution! \n")
         CPU_time = timer.time() - self.start_time
         print("CPU time (s):    {:.2f}".format(CPU_time))
+        fOut.write("{:.2f}, ".format(CPU_time))
         print("Sum of costs:    {}".format(get_sum_of_cost(node['paths'])))
+        fOut.write("{}, ".format(get_sum_of_cost(node['paths'])))
         print("Expanded nodes:  {}".format(self.num_of_expanded))
+        fOut.write("{}, ".format(self.num_of_expanded))
         print("Generated nodes: {}".format(self.num_of_generated))
+        fOut.write("{}".format(self.num_of_generated))

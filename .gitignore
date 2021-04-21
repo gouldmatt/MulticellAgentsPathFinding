@@ -6,6 +6,18 @@ __pycache__/
 # C extensions
 *.so
 
+# GIF files
+*.gif
+Instances/*.gif
+
+# Excel Files
+*.xls
+*.xlsx
+*.csv
+
+# Bat files
+*.bat
+
 # Distribution / packaging
 .Python
 build/

@@ -7,6 +7,7 @@ from independent import IndependentSolver
 from prioritized import PrioritizedPlanningSolver
 from visualize import Animation
 from single_agent_planner import get_sum_of_cost
+import os
 
 SOLVER = "CBS"
 
@@ -109,10 +110,22 @@ if __name__ == '__main__':
         my_map, starts, goals = import_mapf_instance(file)
         print_mapf_instance(my_map, starts, goals)
 
+        results = Path("results.txt")
+        if os.path.exists(results):
+            append_write = 'a'  # append if already exists
+        else:
+            append_write = 'w'  # make a new file if not
+
+        fResult = open(results, append_write)
+        if append_write == 'w':
+            fResult.write("Test File, CPU, Costs, Expanded Nodes, Generated Nodes"  + '\n')
+
+        fResult.write(file + ",  " )
+
         if args.solver == "CBS":
             print("***Run CBS***")
             cbs = CBSSolver(my_map, starts, goals)
-            paths = cbs.find_solution(args.disjoint)
+            paths = cbs.find_solution(fResult, args.disjoint)
         elif args.solver == "Independent":
             print("***Run Independent***")
             solver = IndependentSolver(my_map, starts, goals)
@@ -126,11 +139,16 @@ if __name__ == '__main__':
 
         cost = get_sum_of_cost(paths)
         result_file.write("{},{}\n".format(file, cost))
+        fResult.write('\n')
+        fResult.close()
+
 
 
         if not args.batch:
             print("***Test paths on a simulation***")
             animation = Animation(my_map, starts, goals, paths)
-            # animation.save("output.gif", 1.0)
-            animation.show()
+            outputFile = file
+            outputFile = outputFile.replace(".txt", ".gif")
+            animation.save(outputFile, 1.0)
+            # animation.show()
     result_file.close()

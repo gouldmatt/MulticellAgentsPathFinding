@@ -290,7 +290,8 @@ def a_star(my_map, start_locs, goal_locs, h_values, agent, constraints):
 
     open_list = []
     closed_list = dict()
-    timestep = 0
+    nodes_opened = 0
+    max_opened = 500
     start_loc = start_locs[0]
     goal_loc = goal_locs[0]
     if len(start_locs) > 1:  # If there is more than 1 start location then this is a multi-cell agent
@@ -318,8 +319,9 @@ def a_star(my_map, start_locs, goal_locs, h_values, agent, constraints):
     push_node(open_list, root)
     closed_list[(root['loc'], root['time'])] = root
 
-    while len(open_list) > 0:
+    while len(open_list ) > 0 and nodes_opened < max_opened:
         curr = pop_node(open_list)
+        nodes_opened = nodes_opened + 1
         
         if curr['loc'] == goal_loc and curr['orientation'] == goal_orientation and curr['time'] >= earliest_goal_timestep:
             return get_path(curr)
