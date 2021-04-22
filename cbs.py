@@ -188,7 +188,7 @@ class CBSSolver(object):
                 'paths': [],
                 'collisions': []}
         loops = 0
-        max_loops = 500  # !!! Maximum 10000 iterations
+        max_loops = 2000  # !!! Maximum 10000 iterations
 
         for i in range(self.num_of_agents):  # Find initial path for each agent
             path = a_star(self.my_map, self.starts[i], self.goals[i], self.heuristics[i],

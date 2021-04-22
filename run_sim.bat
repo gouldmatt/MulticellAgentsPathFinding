@@ -1,1 +1,1 @@
-python run_experiments.py --instance instances/exp0_1.txt --solver Independent
+python run_experiments.py --instance instances/test_17m.txt --solver CBS
