@@ -200,11 +200,11 @@ def is_constrained(curr_loc, next_loc, orient, dir, next_time, constraint_table)
     return False
 
 def push_node(open_list, node):
-    heapq.heappush(open_list, (node['g_val'] + node['h_val'], node['h_val'], node['loc'], node['time'], node))
+    heapq.heappush(open_list, (node['g_val'] + node['h_val'], node['h_val'], node['loc'], node['time'], node['orientation'], node))
 
 
 def pop_node(open_list):
-    _, _, _, _, curr = heapq.heappop(open_list)
+    _, _, _, _, _, curr = heapq.heappop(open_list)
     return curr
 
 
@@ -317,7 +317,7 @@ def a_star(my_map, start_locs, goal_locs, h_values, agent, constraints):
 
     root = {'loc': start_loc,'orientation': orientation(start_locs), 'g_val': 0, 'h_val': h_value, 'time': 0, 'parent': None}
     push_node(open_list, root)
-    closed_list[(root['loc'], root['time'])] = root
+    closed_list[(root['loc'], root['time'], root['orientation'])] = root
 
     while len(open_list ) > 0 and nodes_opened < max_opened:
         curr = pop_node(open_list)
@@ -372,13 +372,14 @@ def a_star(my_map, start_locs, goal_locs, h_values, agent, constraints):
                      'time': curr['time'] + 1,
                      'parent': curr}
 
-            if (child['loc'], child['time']) in closed_list:
-                existing_node = closed_list[(child['loc'], child['time'])]
+            if (child['loc'], child['time'], child['orientation']) in closed_list:
+                existing_node = closed_list[(child['loc'], child['time'], child['orientation'])]
+       
                 if compare_nodes(child, existing_node):
-                    closed_list[(child['loc'], child['time'])] = child
+                    closed_list[(child['loc'], child['time'], child['orientation'])] = child
                     push_node(open_list, child)
             else:
-                closed_list[(child['loc'], child['time'])] = child
+                closed_list[(child['loc'], child['time'], child['orientation'])] = child
                 push_node(open_list, child)
 
     return None  # Failed to find solutions
