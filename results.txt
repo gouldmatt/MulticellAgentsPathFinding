@@ -14,3 +14,4 @@ instances/test_14m.txt,  0.00, 32, 3, 5
 instances/test_15m.txt,  0.08, 41, 41, 81
 instances/test_16m.txt,  0.17, 52, 49, 97
 instances/test_17m.txt,  instances/test_17m.txt,  instances/test_18m.txt,  instances/test_17m.txt,  
+Instances/test_18m.txt,  0.16, 53, 22, 43
