@@ -1,13 +1,7 @@
 Test File, CPU, Costs, Expanded Nodes, Generated Nodes
-instances/test_1m.txt,  
-instances/test_11m.txt,  0.02, 40, 11, 21
-instances/test_12m.txt,  1.07, 39, 360, 719
 instances/test_13m.txt,  0.05, 34, 12, 23
-instances/test_12m.txt,  instances/test_12m.txt,  2.59, 41, 566, 1131
-instances/test_14m.txt,  0.00, 19, 3, 5
-instances/test_14m.txt,  0.00, 25, 3, 5
 instances/test_12m.txt,  2.81, 45, 566, 1131
-instances/test_1m.txt,  instances/test_1m.txt,  0.06, 38, 36, 71
+instances/test_1m.txt,  0.06, 38, 36, 71
 instances/test_10m.txt,  0.00, 23, 4, 7
 instances/test_11m.txt,  0.06, 44, 16, 31
 instances/test_14m.txt,  0.00, 32, 3, 5
