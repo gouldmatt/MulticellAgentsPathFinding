@@ -71,8 +71,13 @@ def get_location(path, time):
     elif time < len(path):
         return path[time]
     else:
-        return path[-1]  # wait at the goal location
-
+        # check if last movement was a rotation 
+        # if it was leave out the intermediate step 
+        if(len(path[-1]) == 3):
+            return path[-1][0:2]
+        else:
+            return path[-1]  # wait at the goal location
+        
 
 def get_path(goal_node):
     path = []
@@ -109,7 +114,7 @@ def get_path(goal_node):
                     if parent_orient == 2:
                         intermediate_loc = (tail_loc[0] + 1, tail_loc[1])
                     else: # 4
-                        intermediate_loc = (tail_loc[0], tail_loc[1] - 1)
+                        intermediate_loc = (tail_loc[0] - 1, tail_loc[1])
                 elif orient == 2:
                     if parent_orient == 1:
                         intermediate_loc = (tail_loc[0], tail_loc[1] - 1)
@@ -302,7 +307,7 @@ def a_star(my_map, start_locs, goal_locs, h_values, agent, constraints):
     # determine when the last constraint is on the goal node (or any of the goal node cells in the case of multi-cell)
     earliest_goal_timestep = 0
     if len(constraint_table) != 0:
-        for time in [item for item in reversed(constraint_table.keys())]:
+        for time in [item for item in sorted(list(constraint_table.keys()), reverse=True)]:
             flat_list = [item for sublist in constraint_table[time] for item in sublist]
             if(goal_locs[0] in flat_list):
                 earliest_goal_timestep = time
@@ -311,7 +316,7 @@ def a_star(my_map, start_locs, goal_locs, h_values, agent, constraints):
                 if(goal_locs[1] in flat_list): 
                     earliest_goal_timestep = time
                     break
-            
+
     h_value = h_values[start_loc]
     goal_orientation = orientation(goal_locs)
 
@@ -381,5 +386,5 @@ def a_star(my_map, start_locs, goal_locs, h_values, agent, constraints):
             else:
                 closed_list[(child['loc'], child['time'], child['orientation'])] = child
                 push_node(open_list, child)
-
+        
     return None  # Failed to find solutions

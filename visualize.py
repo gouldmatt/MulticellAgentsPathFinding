@@ -180,7 +180,7 @@ class Animation:
         if(rotation == 1):
             xy = (head[0] , head[1] )
         elif(rotation ==2):
-            xy = (head[0] + 0.25 , head[1] - 0.375)
+            xy = (head[0] + 0.125, head[1] - 0.375)
         elif(rotation == 3):
             xy = (head[0] + 0.5, head[1] - 0.25 )
         else: 
@@ -191,12 +191,12 @@ class Animation:
     def find_xy_text(self,head,rotation):
         if(rotation == 1):
             xy = (head[0], head[1] - 0.5 )
-        elif(rotation ==2):
-            xy = (head[0] + 0.25 , head[1] - 0.125 )
+        elif(rotation == 2):
+            xy = (head[0] + 0.125, head[1] - 0.125 )
         elif(rotation == 3):
             xy = (head[0], head[1] + 0.5 )
         else: 
-            xy = (head[0] + 0.65 , head[1] - 0.125 )
+            xy = (head[0] + 0.75 , head[1] - 0.125 )
         return xy
 
     # find the degree that the rectangle swatch is 
