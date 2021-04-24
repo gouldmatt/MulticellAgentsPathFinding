@@ -29,7 +29,7 @@ def detect_collision(path1, path2):
         else: 
             path2_cells = get_location(path2,t)
 
-        # go through every cell in each agent at this location & timestep
+        # go through every cell in each agent at this timestep
         # and look for a collision 
         for multi_cell1 in path1_cells:
             for multi_cell2 in path2_cells:
@@ -52,12 +52,17 @@ def detect_collision(path1, path2):
                 else: 
                     path2_last_cells = get_location(path2,t-1)
 
-       
+                last_multi_cell1_count = 1
+                last_multi_cell2_count = 1 
                 for last_multi_cell1 in path1_last_cells:
                     for last_multi_cell2 in path2_last_cells:
+                        # ignore the last locations intermediate tail location 
+                        if(last_multi_cell1_count != 3 and last_multi_cell2_count != 3):
+                            if(last_multi_cell1 == multi_cell2 and last_multi_cell2 == multi_cell1):
+                                return({'loc':[multi_cell1, last_multi_cell1], 'timestep': t})
+                        last_multi_cell2_count = last_multi_cell2_count + 1 
+                    last_multi_cell1_count = last_multi_cell1_count + 1 
 
-                        if(last_multi_cell1 == multi_cell2 and last_multi_cell2 == multi_cell1):
-                            return({'loc':[multi_cell1, last_multi_cell1], 'timestep': t})
                         
 
     return None
@@ -188,7 +193,7 @@ class CBSSolver(object):
                 'paths': [],
                 'collisions': []}
         loops = 0
-        max_loops = 2000  # !!! Maximum 10000 iterations
+        max_loops = 10000#2000  # !!! Maximum 10000 iterations
 
         for i in range(self.num_of_agents):  # Find initial path for each agent
             path = a_star(self.my_map, self.starts[i], self.goals[i], self.heuristics[i],
@@ -224,6 +229,7 @@ class CBSSolver(object):
                 raise BaseException('No solutions') # maximum loops exceeded
 
             if len(P["collisions"]) == 0: 
+                print(P["paths"])
                 self.print_results(fOut, P)
                 return P["paths"]
 
@@ -238,10 +244,14 @@ class CBSSolver(object):
             
                 agent = c['agent']
                 path = a_star(self.my_map, self.starts[agent], self.goals[agent], self.heuristics[agent],agent, Q['constraints'])
+                
+                
                 if path is not None: 
+
                     Q['paths'][agent] = path
                     Q['collisions'] = detect_collisions(Q['paths'])
                     Q['cost'] = get_sum_of_cost(Q['paths'])
+
                     self.push_node(Q)
             loops = loops + 1
 
