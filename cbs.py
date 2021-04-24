@@ -225,13 +225,8 @@ class CBSSolver(object):
         while len(self.open_list) > 0:
             P = self.pop_node()
 
-            # if loops > max_loops:
-            #     raise BaseException('No solutions') # maximum loops exceeded
-            if(loops % 1000 == 0):
-                    print("Expanded nodes:  {}".format(self.num_of_expanded))
-                    print("Generated nodes: {}".format(self.num_of_generated))
-                    print(loops)
-
+            if loops > max_loops:
+                raise BaseException('No solutions') # maximum loops exceeded
 
             if len(P["collisions"]) == 0: 
                 print(P["paths"])
@@ -239,9 +234,6 @@ class CBSSolver(object):
                 return P["paths"]
 
             constraints = standard_splitting(P['collisions'][0])
-
-            # print(constraints)
-            # timer.sleep(1)
 
             for c in constraints:
                 Q = {'cost': 0,
@@ -259,11 +251,6 @@ class CBSSolver(object):
                     Q['paths'][agent] = path
                     Q['collisions'] = detect_collisions(Q['paths'])
                     Q['cost'] = get_sum_of_cost(Q['paths'])
-
-                    # print("=================== new node")
-                    # print(Q)
-                   
-
 
                     self.push_node(Q)
             loops = loops + 1
